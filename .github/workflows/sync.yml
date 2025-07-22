@@ -1,0 +1,38 @@
+name: Daily Sync from Blender Source
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Daily at 06:00 UTC
+  workflow_dispatch:     # Manual trigger
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout your repo
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Configure Git
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Add upstream remote
+      run: |
+        git remote add upstream https://projects.blender.org/blender/blender.git
+        git fetch upstream
+
+    - name: Enable sparse-checkout
+      run: |
+        git sparse-checkout init --cone
+        git sparse-checkout set source scripts release
+
+    - name: Merge upstream changes
+      run: |
+        git pull upstream main --allow-unrelated-histories --no-edit || echo "No merge needed"
+
+    - name: Push to origin
+      run: git push origin main
